@@ -4,12 +4,6 @@
 //using namespace std; // nejsem si jist, myslim, ze to nepotrebuju
 
 
-// tyto knihovny jsou potreba
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include "Python.h"
-#include "numpy/arrayobject.h"
-#include <iostream>
-
 
 // tyto promenne by mely byt public
 long measurements = 0;
@@ -31,6 +25,18 @@ double(*tableOfMeasurements)[numberOfDimensions]{ new
 #define DLIB_NUMPY_IMPORT_ARRAY_RETURN_TYPE void
 #define DLIB_NUMPY_IMPORT_RETURN return
 #endif
+
+// tyto promenne by mely byt public
+long measurements = 0;
+PyObject *pModel;
+const long numberOfDimensions = 2;
+const long maxMeasurements = 10000000;
+//double tableOfMeasurements[numberOfDimensions][maxMeasurements];
+double(*tableOfMeasurements)[numberOfDimensions]{ new
+double[maxMeasurements][numberOfDimensions] };
+
+
+
 DLIB_NUMPY_IMPORT_ARRAY_RETURN_TYPE import_numpy_stuff()
 {
     import_array();
@@ -50,8 +56,8 @@ CPythonHyperTime::CPythonHyperTime(const char* name)
     //initialize the python interpreter
     Py_Initialize();
     //importing of the python script
-    PyObject *pModuleName = PyUnicode_FromString("python_module");//name must be changed
-    PyObject *pModule = PyImport_Import(pModuleName);
+    pModuleName = PyUnicode_FromString("python_module");//name must be changed
+    pModule = PyImport_Import(pModuleName);
     Py_DECREF(pModuleName); // free memory
     //checking the existence
     if (!pModule){
@@ -203,13 +209,13 @@ float CPythonHyperTime::estimate(uint32_t time)
     if (!pEstimate)
         std::cout << "python function did not respond" << std::endl;
 
-    estimate =  PyFloat_AsDouble(pEstimate);
+    float estimateVal =  PyFloat_AsDouble(pEstimate);
 
     Py_DECREF(pValue);
     Py_DECREF(pEstimate);
     Py_XDECREF(pFunc2);
 
-    return estimate;
+    return estimateVal;
 }
 
 float CPythonHyperTime::predict(uint32_t time)

@@ -4,7 +4,8 @@ SUBDIRS+=models
 SUBDIRS+=main
 
 OBJS=$(wildcard ../obj/*.o)
-LXXLIBS+=-L/usr/local/lib
+LXXLIBS+=-I/usr/local/lib 
+LXXLIBS+=-lpython2.7 
 
 COPY_ETC_CMD=../etc/copy.sh
 COPY_ETC_SRC=../etc
