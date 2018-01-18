@@ -53,6 +53,7 @@ class CPythonHyperTime: public CTemporal
 
 		PyObject *pModuleName;
 		PyObject *pModule;
+		PyObject *pModel;
 
 };
 
