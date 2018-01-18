@@ -1,8 +1,7 @@
-#include "stdafx.h"
 #include <stdlib.h>
 #include <iostream>
 #include <stdio.h>
-#include "statistics.h"
+#include <statistics.h>
 
 using namespace alglib;
 
