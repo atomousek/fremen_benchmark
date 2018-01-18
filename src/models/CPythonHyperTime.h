@@ -10,6 +10,14 @@
 #include "CTimer.h"
 #include "CTemporal.h"
 
+
+// tyto knihovny jsou potreba
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include "Python.h"
+#include "numpy/arrayobject.h"
+#include <iostream>
+
+
 #define FREMEN_AMPLITUDE_THRESHOLD 0.0
 	
 /**
@@ -57,6 +65,17 @@ class CPythonHyperTime: public CTemporal
 		int measurements,order;
 		int64_t firstTime;
 		int64_t  lastTime;
+
+
+
+        // tyto promenne by mely byt public
+        long measurements = 0;
+        PyObject *pModel;
+        const long numberOfDimensions = 2;
+        const long maxMeasurements = 10000000;
+        //double tableOfMeasurements[numberOfDimensions][maxMeasurements];
+        double(*tableOfMeasurements)[numberOfDimensions]{ new
+            double[maxMeasurements][numberOfDimensions] };
 };
 
 #endif

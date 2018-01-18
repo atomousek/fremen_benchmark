@@ -1,6 +1,7 @@
 #include "CPythonHyperTime.h"
 
-using namespace std; // nejsem si jist, myslim, ze to nepotrebuju
+/*
+//using namespace std; // nejsem si jist, myslim, ze to nepotrebuju
 
 
 // tyto knihovny jsou potreba
@@ -18,7 +19,7 @@ const long maxMeasurements = 10000000;
 //double tableOfMeasurements[numberOfDimensions][maxMeasurements];
 double(*tableOfMeasurements)[numberOfDimensions]{ new
     double[maxMeasurements][numberOfDimensions] };
-
+*/
 
 // stolen from https://github.com/davisking/dlib/blob/master/tools/python/src/numpy_returns.cpp
 // we need this wonky stuff because different versions of numpy's import_array macro
