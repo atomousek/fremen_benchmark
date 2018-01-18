@@ -8,4 +8,4 @@ def python_function_update(nparr):
 
 
 def python_function_estimate(bordel, neco):
-    return bordel[2]
+    return a, b, prumer
