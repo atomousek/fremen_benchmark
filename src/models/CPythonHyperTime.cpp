@@ -14,8 +14,10 @@ using namespace std; // nejsem si jist, myslim, ze to nepotrebuju
 long measurements = 0;
 PyObject *pModel;
 const long numberOfDimensions = 2;
-const long maxMeasurements = 10000;
-double tableOfMeasurements[numberOfDimensions][maxMeasurements];
+const long maxMeasurements = 10000000;
+//double tableOfMeasurements[numberOfDimensions][maxMeasurements];
+double(*tableOfMeasurements)[numberOfDimensions]{ new
+    double[maxMeasurements][numberOfDimensions] };
 
 
 // stolen from https://github.com/davisking/dlib/blob/master/tools/python/src/numpy_returns.cpp
@@ -76,7 +78,7 @@ CPythonHyperTime::~CPythonHyperTime()
     Py_DECREF(pModel); 
     Py_Finalize(); // shuts the interpreter down
     // clear the memory
-    //free(tableOfMeasurements);//hazi chybu, nevim, jak zlikvidovat
+    free(tableOfMeasurements);
 }
 
 // adds new state observations at given times
@@ -100,9 +102,12 @@ void CPythonHyperTime::update(int modelOrder)
 
     // Convert it to a NumPy array
     //npy_intp dims[numberOfDimensions]{numberOfDimensions,maxMeasurements};
-    npy_intp dims[numberOfDimensions]{numberOfDimensions,measurements};
+    //npy_intp dims[numberOfDimensions]{numberOfDimensions,measurements};
+    npy_intp dims[2]{measurements, numberOfDimensions};
+    //PyObject *pArray = PyArray_SimpleNewFromData(
+        //numberOfDimensions, dims, NPY_FLOAT, reinterpret_cast<void*>(tableOfMeasurements));
     PyObject *pArray = PyArray_SimpleNewFromData(
-        numberOfDimensions, dims, NPY_FLOAT, reinterpret_cast<void*>(tableOfMeasurements));
+        2, dims, NPY_DOUBLE, reinterpret_cast<void*>(tableOfMeasurements));
     if (!pArray)
         std::cout << "numpy array was not created" << std::endl;
 
@@ -115,17 +120,16 @@ void CPythonHyperTime::update(int modelOrder)
         std::cout << "python function is not callable." << std::endl;
 
 
-/*
+
 // v kazdem pripade bych nemel delat to numpy array z celeho toho arraye, ale jen z vyuzite casti. Pak se pouzije tato cas kodu, nebot pArray nebude obsahovat nesmyslne (nenaplnene) radky
     // np_ret = mymodule.array_tutorial(np_arr)
     PyObject *pModel = PyObject_CallFunctionObjArgs(pFunc, pArray, NULL);
     if (!pModel)
         std::cout << "python function did not respond" << std::endl;
 //zde predpokladame, ze pModel je pythoni objekt obsahujici libovolny pythoni bordel, ktery definuje model
-// nicmene, ja tady budu muset ukoncit tu funkci a smazat bordel z ramky
 
-*/
 
+/*
 //### tady zacina docasna cast
 
     // np_ret = mymodule.array_tutorial(np_arr)
@@ -149,7 +153,7 @@ void CPythonHyperTime::update(int modelOrder)
     Py_DECREF(pValue0);
 
 //### tady konci docasna cast
-
+*/
 
     Py_DECREF(pArray);
     Py_XDECREF(pFunc); //XDECREF?
