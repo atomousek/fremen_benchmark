@@ -49,7 +49,7 @@ CPythonHyperTime::CPythonHyperTime(const char* name)
 	strcpy(id,name); //? nevim, zda to budu pouzivat
     // instead of export PYTHONPATH=`pwd` in terminal
     // stolen from https://stackoverflow.com/questions/46493307/embed-python-numpy-in-c
-    setenv("PYTHONPATH", ".", 1);
+    setenv("PYTHONPATH", "models/python", 1);
 
     /* Py_SetProgramName(argv[0]); //default 'python', I will not call that */
 
@@ -120,7 +120,7 @@ void CPythonHyperTime::update(int modelOrder)
 
 
     // call python function
-    PyObject *pFunc = PyObject_GetAttrString(pModule,"python_function"); // name must be changed
+    PyObject *pFunc = PyObject_GetAttrString(pModule,"python_function_update"); // name must be changed
     if (!pFunc)
         std::cout << "python function was not created" << std::endl; //?
     if (!PyCallable_Check(pFunc))
@@ -165,6 +165,7 @@ void CPythonHyperTime::update(int modelOrder)
     Py_DECREF(pArray);
     Py_XDECREF(pFunc); //XDECREF?
 
+    std::cout << "update prosel" << std::endl;
 
 
 }
@@ -172,13 +173,6 @@ void CPythonHyperTime::update(int modelOrder)
 /*text representation of the fremen model*/
 void CPythonHyperTime::print(bool verbose)
 {
-	std::cout << "Model: " << id << " Prior: " << predictGain << " Size: " << measurements << " ";
-	if (verbose){
-		for (int i = 0;i<order;i++){
-			std::cout << "Frelement " << i << " " << predictFrelements[i].amplitude << " " << predictFrelements[i].phase << " " << predictFrelements[i].period << " ";
-		}
-	}
-	std::cout << endl; 
 }
 
 float CPythonHyperTime::estimate(uint32_t time)
@@ -189,7 +183,7 @@ float CPythonHyperTime::estimate(uint32_t time)
     // call python function
     PyObject *pFunc2 = PyObject_GetAttrString(pModule,"python_function_estimate"); // name must be changed
     if (!pFunc2)
-        std::cout << "python function does not exist" << std::endl; //?
+        std::cout << "python function does not exista" << std::endl; //?
     if (!PyCallable_Check(pFunc2))
         std::cout << "python function is not callable." << std::endl;
 
@@ -220,12 +214,7 @@ float CPythonHyperTime::estimate(uint32_t time)
 
 float CPythonHyperTime::predict(uint32_t time)
 {
-	float saturation = 0.01;
-	float estimate =  predictGain;
-	for (int i = 0;i<order;i++) estimate+=2*predictFrelements[i].amplitude*cos(time/predictFrelements[i].period*2*M_PI-predictFrelements[i].phase);
-	if (estimate > 1.0-saturation) estimate =  1.0-saturation;
-	if (estimate < 0.0+saturation) estimate =  0.0+saturation;
-	return estimate;
+	return estimate(time);
 }
 
 int CPythonHyperTime::save(char* name,bool lossy)
@@ -247,18 +236,10 @@ int CPythonHyperTime::load(char* name)
 
 int CPythonHyperTime::save(FILE* file,bool lossy)
 {
-	int frk = numElements;
-	fwrite(&frk,sizeof(uint32_t),1,file);
-	fwrite(&storedGain,sizeof(float),1,file);
-	fwrite(storedFrelements,sizeof(SFrelement),numElements,file);
 	return 0;
 }
 
 int CPythonHyperTime::load(FILE* file)
 {
-	int frk = numElements;
-	fwrite(&frk,sizeof(uint32_t),1,file);
-	fwrite(&storedGain,sizeof(float),1,file);
-	fwrite(storedFrelements,sizeof(SFrelement),numElements,file);
 	return 0;
 }

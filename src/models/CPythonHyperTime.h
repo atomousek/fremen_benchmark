@@ -23,15 +23,6 @@
 /**
 @author Tom Krajnik
 */
-typedef struct{
-	float realStates;
-	float imagStates;
-	float realBalance;
-	float imagBalance;
-	float amplitude;
-	float phase;
-	float period;	
-}SFrelement;
 
 using namespace std;
 
@@ -57,14 +48,8 @@ class CPythonHyperTime: public CTemporal
 		int save(char* name,bool lossy = false);
 		int load(char* name);
 		
-		float storedGain;
-		SFrelement *storedFrelements;
 		char id[MAX_ID_LENGTH];
-		float predictGain;
-		SFrelement *predictFrelements;
-		int measurements,order;
-		int64_t firstTime;
-		int64_t  lastTime;
+		int measurements;
 
 		PyObject *pModuleName;
 		PyObject *pModule;

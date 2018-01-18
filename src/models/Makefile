@@ -2,8 +2,6 @@ OBJS=$(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
 include ../Mk/local.Mk
 CXXINCLUDE+=-I./ -I../common 
-CXXINCLUDE+=-I/usr/local/include
-CXXINCLUDE+=-I/usr/include/python2.7/
 
 all: $(OBJS) 
 

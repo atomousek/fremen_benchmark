@@ -9,6 +9,7 @@
 #include "CTimeMean.h"
 #include "CTemporal.h"
 #include "CTimer.h"
+#include "CPythonHyperTime.h"
 #define MAX_SIGNAL_LENGTH 1000000
 
 CTemporal *temporalModel;
@@ -42,6 +43,7 @@ int main(int argc,char *argv[])
 	else if (argv[3][0] == 'F') temporalModel = new CFrelement("door");
 	else if (argv[3][0] == 'M') temporalModel = new CTimeMean("door");
 	else if (argv[3][0] == 'G') temporalModel = new CPerGaM("door");
+	else if (argv[3][0] == 'P') temporalModel = new CPythonHyperTime("door");
 	else temporalModel = new CTimeNone("door");
 
 	temporalModel->init(86400,atoi(argv[4]),1);
