@@ -28,7 +28,6 @@ double(*tableOfMeasurements)[numberOfDimensions]{ new
 
 // tyto promenne by mely byt public
 long measurements = 0;
-PyObject *pModel;
 const long numberOfDimensions = 2;
 const long maxMeasurements = 10000000;
 //double tableOfMeasurements[numberOfDimensions][maxMeasurements];
@@ -130,7 +129,7 @@ void CPythonHyperTime::update(int modelOrder)
 
 // v kazdem pripade bych nemel delat to numpy array z celeho toho arraye, ale jen z vyuzite casti. Pak se pouzije tato cas kodu, nebot pArray nebude obsahovat nesmyslne (nenaplnene) radky
     // np_ret = mymodule.array_tutorial(np_arr)
-    PyObject *pModel = PyObject_CallFunctionObjArgs(pFunc, pArray, NULL);
+    pModel = PyObject_CallFunctionObjArgs(pFunc, pArray, NULL);
     if (!pModel)
         std::cout << "python function did not respond" << std::endl;
 //zde predpokladame, ze pModel je pythoni objekt obsahujici libovolny pythoni bordel, ktery definuje model
