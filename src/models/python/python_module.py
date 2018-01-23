@@ -24,7 +24,7 @@ def python_function_update(training_coordinates):
     shortest = 60*60*4
     edge_of_square = 1  # nepotrebna hodnota
     timestep = 1
-    k = 9  # muzeme zkusit i 9
+    k = 1  # muzeme zkusit i 9
     # hours_of_measurement = 24 * 7  # nepotrebne
     radius = 2
     number_of_periods = 2
@@ -35,6 +35,10 @@ def python_function_update(training_coordinates):
     C_p, COV_p, density_integrals_p, structure_p, average_p =\
         lrn.proposed_method(longest, shortest, path_p, edge_of_square, timestep, k,
                             radius, number_of_periods, evaluation)
+    # print(C_p)
+    # print(COV_p)
+    # print(density_integrals_p)
+    # print(structure_p)
     print('\nmodel for negative measurements\n\n\n')
     C_n, COV_n, density_integrals_n, structure_n, average_n =\
         lrn.proposed_method(longest, shortest, path_n, edge_of_square, timestep, k,
@@ -57,18 +61,19 @@ def python_function_estimate(whole_model, time):
     ###################################################
     # otevirani a zavirani dveri, pozitivni i negativni
     ###################################################
-    print('jsem tu a cas je:')
-    print(time)
-    freq_p = mdl.frequencies(np.array([[time]]), whole_model[0], whole_model[1],
+    #print('jsem tu a cas je:')
+    #print(time)
+    #print('model je:')
+    #print(whole_model)
+    freq_p = mdl.one_freq(np.array([[time]]), whole_model[0], whole_model[1],
                              whole_model[3], whole_model[4],
                              whole_model[2])
-    print(freq_p)
-    freq_n = mdl.frequencies(np.array([[time]]), whole_model[5], whole_model[6],
+    #print(freq_p)
+    freq_n = mdl.one_freq(np.array([[time]]), whole_model[5], whole_model[6],
                              whole_model[8], whole_model[4],
                              whole_model[7])
-    print(freq_n)
+    #print(freq_n)
     probability = freq_p / (freq_p + freq_n)
-    print(probability)
     return float(probability[0])
 
     

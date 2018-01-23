@@ -299,3 +299,44 @@ def iter_over_freqs(input_coordinates_part, C, COV, structure, k,
     gc.collect()
     freqs_part = np.sum(U, axis=0)
     return freqs_part
+
+
+def one_freq(one_input_coordinate, C, COV, structure, k,
+                    density_integrals):
+    """
+    input: one_input_coordinate numpy array, coordinates for model creation
+           C numpy array kxd, matrix of k d-dimensional cluster centres
+           COV numpy array kxdxd, matrix of covariance matrices
+           structure list(int, list(floats), list(floats)),
+                      number of non-hypertime dimensions, list of hypertime
+                      radii nad list of wavelengths
+           k positive integer, number of clusters
+           density_integrals numpy array kx1, matrix of ratios between
+                                               measurements and grid cells
+                                               belonging to the clusters
+    output: freq array len(input_coordinates_part)x1,
+                                           frequencies(stat) obtained
+                                           from model in positions of part
+                                           of input_coordinates
+    uses: dio.create_X(), np.shape(), gc.collect(), np.tile(),
+          np.sum(), np.dot(), np.array(),
+          cl.partition_matrix()
+    objective: to create grid of frequencies(stat) over a part time-space
+               (histogram)
+    """
+    X = dio.create_X(one_input_coordinate, structure)
+    n, d = np.shape(X)
+    D = []
+    for cluster in range(k):
+        # C_cluster = np.tile(C[cluster, :], (n, 1))
+        XC = X - C[cluster]
+        VI = COV[cluster]#COV[cluster, :, :]
+        D.append(np.sum(np.dot(XC, VI) * XC, axis=1))
+        # gc.collect()
+    D = np.array(D)
+    # gc.collect()
+    U = cl.partition_matrix(D, version='model')
+    U = (U ** 2) * density_integrals
+    # gc.collect()
+    freq = np.sum(U, axis=0)
+    return freq

@@ -81,7 +81,8 @@ void CPythonHyperTime::init(int iMaxPeriod,int elements,int numActivities)
 CPythonHyperTime::~CPythonHyperTime()
 {
     // tady pravdepodobne
-    Py_DECREF(pModel); 
+    Py_DECREF(pModel);
+    Py_XDECREF(pFunc2);
     Py_Finalize(); // shuts the interpreter down
     // clear the memory
     free(tableOfMeasurements);
@@ -180,13 +181,16 @@ float CPythonHyperTime::estimate(uint32_t time)
     double test = (double)time;
 
     // call python function
-    PyObject *pFunc2 = PyObject_GetAttrString(pModule,"python_function_estimate"); // name must be changed
+    // PyObject *pFunc2 = PyObject_GetAttrString(pModule,"python_function_estimate"); // name must be changed
+    pFunc2 = PyObject_GetAttrString(pModule,"python_function_estimate");
     if (!pFunc2)
         std::cout << "python function does not exista" << std::endl; //?
     if (!PyCallable_Check(pFunc2))
         std::cout << "python function is not callable." << std::endl;
 
-
+    if (!pModel)
+        std::cout << "pModel does not exists" << std::endl;
+    Py_INCREF(pModel);
     PyObject *pArgs = PyTuple_New(2);
     PyTuple_SetItem(pArgs, 0, pModel);
 
@@ -206,7 +210,7 @@ float CPythonHyperTime::estimate(uint32_t time)
 
     Py_DECREF(pValue);
     Py_DECREF(pEstimate);
-    Py_XDECREF(pFunc2);
+//    Py_XDECREF(pFunc2);
 
     return estimateVal;
 }
