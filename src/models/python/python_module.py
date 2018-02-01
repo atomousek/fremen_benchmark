@@ -74,8 +74,8 @@ def python_function_save(whole_model, file_path):
 def python_function_load(file_path):
     """
     """
-    with open(file_path, 'r') as opened_file:
-        npzfile = np.load(file_path)
+    with open(file_path + '.npz', 'r') as opened_file:
+        npzfile = np.load(opened_file)
         C_p, COV_p, density_integrals_p, loaded_structure, k =\
             npzfile['arr_0'], npzfile['arr_1'], npzfile['arr_2'],\
             npzfile['arr_3'], int(npzfile['arr_4'])
