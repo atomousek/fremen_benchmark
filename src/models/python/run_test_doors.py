@@ -3,9 +3,11 @@
 
 import numpy as np
 import python_module as pm
-a = np.arange(100000)
-b = np.random.choice([0, 1], size=100000, replace=True)
-c = np.c_[a, b]
+import dataset_io as dio
+
+c = dio.loading_data('../data/10_weeks_doors.txt')
+
 model = pm.python_function_update(c)
-for i in xrange(100):
-    print(pm.python_function_estimate(model, i))
+
+for i in xrange(10):
+    print(pm.python_function_estimate(model, c[-1, 0] + i * 60))

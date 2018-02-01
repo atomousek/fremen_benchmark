@@ -86,6 +86,7 @@ def create_X(data, structure):
     dim = structure[0]
     radii = structure[1]
     wavelengths = structure[2]
+    ##### POKUS !!!
     X = np.empty((len(data), dim + len(radii) * 2))
     X[:, : dim] = data[:, 1: dim + 1]
     for period in range(len(radii)):
@@ -94,6 +95,14 @@ def create_X(data, structure):
         X[:, dim: dim + 2] = np.c_[r * np.cos(data[:, 0] * 2 * np.pi / Lambda),
                                    r * np.sin(data[:, 0] * 2 * np.pi / Lambda)]
         dim = dim + 2
+    #X = np.empty((len(data), dim + 2))
+    #X[:, : dim] = data[:, 1: dim + 1]
+    #r = radii[-1]
+    #Lambda = wavelengths[-1]
+    #print('pouzita delka periody: ' + str(Lambda))
+    #X[:, dim: dim + 2] = np.c_[r * np.cos(data[:, 0] * 2 * np.pi / Lambda),
+    #                           r * np.sin(data[:, 0] * 2 * np.pi / Lambda)]
+    ##### KONEC POKUSU !!!
     return X
 
 
@@ -104,7 +113,65 @@ def file_directory():
     return os.path.dirname(__file__)
 
 
+def divide_dataset(dataset):
+    """
+    input: dataset numpy array, columns: time, vector of measurements, 0/1
+                                  (occurence of event)
+    output: training_data numpy array n*xd*, matrix of measures IRL, where
+                                             d* is number of measured variables
+                                             n* is 85% of measures
+            evaluation_dataset numpy array, last 15% of dataset
+            measured_time numpy array nX1, all measurement times
+    uses: np.ceil(), np.split(),
+    objective: to divide dataset to two parts (training and evaluation), 
+               to create the "list" of all times of mesurements for fremen,
+               to create training data of positive occurences of events
+    """
+    dividing_position = int(np.ceil(len(dataset) * 0.8))
+    training_dataset, evaluation_dataset =\
+        np.split(dataset, [dividing_position])
+    training_data = training_dataset[training_dataset[:, -1] == 1, 0: -1]
+    # measured_times = training_dataset[:, 0]  # or [:, 0:1] ?
+    ##### POKUS !!!
+    return training_data, evaluation_dataset, training_dataset
+    #return training_data, training_dataset, training_dataset
+    ##### KONEC POKUSU !!!
 
+
+def hypertime_substraction(X, Ci, structure):
+    """
+    input: X numpy array nxd, matrix of n d-dimensional observations
+           Ci_nxd numpy array nxd, matrix of n d-dimensional cluster centre
+                                   copies
+           structure list(int, list(floats), list(floats)),
+                      number of non-hypertime dimensions, list of hypertime
+                      radii nad list of wavelengths
+    output: XC numpy array nxWTF, matrix of n WTF-dimensional substractions
+    uses:
+    objective: to substract C from X in hypertime
+    """
+    # classical difference
+    # XC = X - Ci
+    # cosine distance for hypertime and classical difference for space
+    #non-hypertime dimensions substraction
+    observations = np.shape(X)[0]
+    ones = np.ones((observations, 1))
+    dim = structure[0]
+    radii = structure[1]
+    XC = np.empty((observations, dim + len(radii)))
+    XC[:, : dim] = X[:, : dim] - Ci[:, : dim]
+    # hypertime dimensions substraction
+    for period in range(len(radii)):
+        r = radii[period]
+        cos = (np.sum(X[:, dim + (period * 2): dim + (period * 2) + 2] *
+                      Ci[:, dim + (period * 2): dim + (period * 2) + 2],
+                      axis=1, keepdims=True) / (r ** 2))
+        cos = np.minimum(np.maximum(cos, ones * -1), ones)
+        XC[:, dim + period: dim + period + 1] = r * np.arccos(cos)
+    return XC
+
+
+# next there are functions used for testing only
 def save_numpy_array(variable, name, save_directory):
     """
     input: variable numpy array, some variable
@@ -169,7 +236,6 @@ def load_list(name, load_directory):
         return pickle.load(myfile)
 
 
-# next there are functions used for testing only
 
 def zobrazeni_do_rozumnych_souradnic(X, structure):
     Ci = create_zeros(structure)

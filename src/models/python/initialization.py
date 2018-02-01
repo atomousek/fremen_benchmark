@@ -44,7 +44,8 @@ import fremen as fm
 import model as mdl
 
 
-def whole_initialization(path, k, edge_of_square, timestep, longest, shortest):
+def whole_initialization(training_data, k, edges_of_cell, longest,
+                         shortest, training_dataset):
     """
     input: path string, path to file
            k positive integer, number of clusters
@@ -78,10 +79,12 @@ def whole_initialization(path, k, edge_of_square, timestep, longest, shortest):
     objective: to perform first iteration step and to initialize variables
     """
     print('starting learning iteration: 0 (initialization)')
-    structure = first_structure(path)
-    input_coordinates, time_frame_sums, overall_sum, shape_of_grid, T =\
-        grid.time_space_positions(edge_of_square, timestep, path)
-    if len(shape_of_grid) == 1:
+    structure = first_structure(training_data)
+    input_coordinates, time_frame_sums, overall_sum, shape_of_grid, T,\
+        valid_timesteps = grid.time_space_positions(edges_of_cell,
+                                                    training_data,
+                                                    training_dataset)
+    if len(shape_of_grid[0]) == 1:
         hist_freqs = -1
         C = -1
         U = -1
@@ -89,18 +92,20 @@ def whole_initialization(path, k, edge_of_square, timestep, longest, shortest):
         density_integrals = -1
     else:
         hist_freqs, C, U, COV, density_integrals =\
-            mdl.model_creation(input_coordinates, structure, path,
+            mdl.model_creation(input_coordinates, structure, training_data,
                                0, 0,  # C_in and U_in
                                k, shape_of_grid)
-    time_frame_freqs = first_time_frame_freqs(overall_sum, shape_of_grid)
+    time_frame_freqs = first_time_frame_freqs(overall_sum, shape_of_grid[0])
     W = fm.build_frequencies(longest, shortest)
     ES = -1  # no previous error
     P, W, ES, dES = fm.chosen_period(T, time_frame_sums,
-                                     time_frame_freqs, W, ES)
+                                     time_frame_freqs[0], W, ES,
+                                     valid_timesteps)
     print('used structure: ' + str(structure))
     print('leaving learning iteration: 0 (initialization)')
     return input_coordinates, overall_sum, structure, C,\
-        U, shape_of_grid, time_frame_sums, T, W, ES, P, COV, density_integrals
+        U, shape_of_grid, time_frame_sums, T, W, ES, P, COV,\
+        density_integrals, valid_timesteps
 
 
 def first_time_frame_freqs(overall_sum, shape_of_grid):
@@ -121,7 +126,7 @@ def first_time_frame_freqs(overall_sum, shape_of_grid):
     return time_frame_freqs
 
 
-def first_structure(path):
+def first_structure(training_data):
     """
     input: path string, path to file
     output: structure list(int, list(floats), list(floats)),
@@ -130,6 +135,6 @@ def first_structure(path):
     uses: np.shape(), dio.loading_data()
     objective: to create initial structure
     """
-    dim = np.shape(dio.loading_data(path))[1] - 1
+    dim = np.shape(training_data)[1] - 1
     structure = [dim, [], []]
     return structure

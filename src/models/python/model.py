@@ -34,7 +34,7 @@ import numpy as np
 import gc
 
 
-def model_creation(input_coordinates, structure, path, C_old, U_old, k,
+def model_creation(input_coordinates, structure, data, C_old, U_old, k,
                    shape_of_grid):
     """
     input: input_coordinates numpy array, coordinates for model creation
@@ -62,17 +62,17 @@ def model_creation(input_coordinates, structure, path, C_old, U_old, k,
                pass centres and weights to the next clusters initialization,
                and return model parameters (C, COV, density_integrals)
     """
-    C, U, COV, densities = model_parameters(path, structure, C_old, U_old, k)
+    C, U, COV, densities = model_parameters(data, structure, C_old, U_old, k)
     grid_densities = coordinates_densities(input_coordinates, C, COV,
                                            structure, k)
     density_integrals = densities / grid_densities
     freqs = frequencies(input_coordinates, C, COV,
                         structure, k, density_integrals)
-    hist_freqs = freqs.reshape(shape_of_grid)
+    hist_freqs = freqs.reshape(shape_of_grid[0])
     return hist_freqs, C, U, COV, density_integrals
 
 
-def model_parameters(path, structure, C_old, U_old, k):
+def model_parameters(data, structure, C_old, U_old, k):
     """
     input: path string, path to file
            structure list(int, list(floats), list(floats)),
@@ -89,11 +89,14 @@ def model_parameters(path, structure, C_old, U_old, k):
     uses: dio.create_X(), cl.k_means(), covariance_matrices()
     objective: to find model parameters
     """
-    X = dio.create_X(dio.loading_data(path), structure)
+    X = dio.create_X(data, structure)
     # test to find out if clusters are known from previous clustering
     try:
         len(U_old)
-        used_method = 'stable_init'  # originaly 'prev_dim'
+        ##### POKUS !!!
+        #used_method = 'stable_init'  # originaly 'prev_dim'
+        used_method = 'random'
+        ##### KONEC POKUSU !!!
     except TypeError:
         used_method = 'random'
     print('type of initialization for clustering: ' + used_method)
@@ -121,16 +124,18 @@ def covariance_matrices(X, C, U, structure):
     objective: to calculate covariance matrices for model
     """
     k, n = np.shape(U)
-    D = cl.distance_matrix(X, C, U)
-    # pure fuzzy W
-    W = cl.partition_matrix(D, version='fuzzy')
-    # W with binary memberships from U
-    W = W * U
+    D = cl.distance_matrix(X, C, U, structure)
+    ## not pure fuzzy W :)
+    #W = cl.partition_matrix(D, version='fuzzy')
+    ## W with binary memberships from U
+    #W = W * U
     COV = []
     for cluster in range(k):
         C_cluster = np.tile(C[cluster, :], (n, 1))
-        XC = X - C_cluster
-        V = np.cov(XC, aweights=W[cluster, :], ddof=0, rowvar=False)
+        XC = dio.hypertime_substraction(X, C_cluster, structure)
+        #XC = X - C_cluster
+        #V = np.cov(XC, aweights=W[cluster, :], ddof=0, rowvar=False)
+        V = np.cov(XC, ddof=0, rowvar=False)
         if len(np.shape(V)) == 2:
             Vinv = np.linalg.inv(V)
         else:
@@ -200,7 +205,8 @@ def iter_over_coordinates(input_coordinates_part, C, COV, structure, k):
     D = []
     for cluster in range(k):
         C_cluster = np.tile(C[cluster, :], (n, 1))
-        XC = X - C_cluster
+        XC = dio.hypertime_substraction(X, C_cluster, structure)
+        #XC = X - C_cluster
         VI = COV[cluster]#COV[cluster, :, :]
         D.append(np.sum(np.dot(XC, VI) * XC, axis=1))
         gc.collect()
@@ -288,7 +294,8 @@ def iter_over_freqs(input_coordinates_part, C, COV, structure, k,
     D = []
     for cluster in range(k):
         C_cluster = np.tile(C[cluster, :], (n, 1))
-        XC = X - C_cluster
+        XC = dio.hypertime_substraction(X, C_cluster, structure)
+        #XC = X - C_cluster
         VI = COV[cluster]#COV[cluster, :, :]
         D.append(np.sum(np.dot(XC, VI) * XC, axis=1))
         gc.collect()
@@ -329,7 +336,8 @@ def one_freq(one_input_coordinate, C, COV, structure, k,
     D = []
     for cluster in range(k):
         # C_cluster = np.tile(C[cluster, :], (n, 1))
-        XC = X - C[cluster]
+        XC = dio.hypertime_substraction(X, C[cluster:cluster+1], structure)
+        #XC = X - C[cluster]
         VI = COV[cluster]#COV[cluster, :, :]
         D.append(np.sum(np.dot(XC, VI) * XC, axis=1))
         # gc.collect()

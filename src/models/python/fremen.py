@@ -42,7 +42,8 @@ It is necessary to understand what periodicities you are looking for (or what
 import numpy as np
 
 
-def chosen_period(T, time_frame_sums, time_frame_freqs, W, ES):
+def chosen_period(T, time_frame_sums, time_frame_freqs, W, ES,
+                  valid_timesteps):
     """
     input: T numpy array Nx1, time positions of measured values
            time_frame_sums numpy array shape_of_grid[0]x1, sum of measures
@@ -67,7 +68,7 @@ def chosen_period(T, time_frame_sums, time_frame_freqs, W, ES):
     objective: to choose the most influencing period in the timeseries, where
                timeseries are the residues between reality and model
     """
-    S = time_frame_sums - time_frame_freqs
+    S = (time_frame_sums - time_frame_freqs)[valid_timesteps]
     ES_new = (np.sum(S ** 2)) ** 0.5
     print('squared sum of squares of residues: ' + str(ES_new))
     if ES == -1:
@@ -124,14 +125,24 @@ def max_influence(W, G):
     objective: to find length of the most influential periodicity in default
                units and return changed list of frequencies
     """
-    maximum_position = np.argmax(np.absolute(G[1:])) + 1
+    #### testovani zmeny "sily" periody pri zmene poctu shluku
+    #print('soucet velikosti period')
+    #print(np.sum(np.absolute(G)))
+    #### konec testovani
+    # maximum_position = np.argmax(np.absolute(G[1:])) + 1
+    maximum_position = np.argmax(np.absolute(G))
+    print('velikost nejvlivnejsi periody')
+    print(np.max(np.absolute(G)))
     # ! probably not elegant way of changing W
-    WW = list(W)
-    influential_frequency = WW.pop(maximum_position)
-    W = np.array(WW)
+    # WW = list(W)
+    # influential_frequency = WW.pop(maximum_position)
+    # W = np.array(WW)
     # !
+    influential_frequency = W[maximum_position]
     if influential_frequency == 0:
         P = np.float64(0.0)
     else:
         P = 1 / influential_frequency
+    print('vybrana perioda')
+    print(P)
     return P, W

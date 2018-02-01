@@ -222,17 +222,55 @@ float CPythonHyperTime::predict(uint32_t time)
 
 int CPythonHyperTime::save(char* name,bool lossy)
 {
-	FILE* file = fopen(name,"w");
-	save(file);
-	fclose(file);
+    PyObject *pFunc3 = PyObject_GetAttrString(pModule,"python_function_save");
+    if (!pFunc3)
+        std::cout << "python function save does not exista" << std::endl; //?
+    if (!PyCallable_Check(pFunc3))
+        std::cout << "python function save is not callable." << std::endl;
+    if (!pModel)
+        std::cout << "pModel does not exists, unable to save" << std::endl;
+    Py_INCREF(pModel);
+    PyObject *pArgs3 = PyTuple_New(2);
+    PyTuple_SetItem(pArgs3, 0, pModel);
+    // takhle to snad jde zavolat
+    PyObject *pPath3 = PyString_FromString(name);//?
+    if (!pPath3)
+        std::cout << "unable to convert name to python string" << std::endl;
+    PyTuple_SetItem(pArgs3, 1, pPath3);
+    PyObject_CallObject(pFunc3, pArgs3);
+
+    Py_DECREF(pPath3);
+    Py_DECREF(pArgs3);
+    Py_DECREF(pFunc3);
+	//FILE* file = fopen(name,"w");
+	//save(file);
+	//fclose(file);
 	return 0;
 }
 
 int CPythonHyperTime::load(char* name)
 {
-	FILE* file = fopen(name,"r");
-	load(file);
-	fclose(file);
+    PyObject *pFunc4 = PyObject_GetAttrString(pModule,"python_function_load");
+    if (!pFunc4)
+        std::cout << "python function load does not exists" << std::endl; //?
+    if (!PyCallable_Check(pFunc4))
+        std::cout << "python function load is not callable." << std::endl;
+    // takhle to snad jde zavolat
+    PyObject *pPath4 = PyString_FromString(name);//?
+    if (!pPath4)
+        std::cout << "unable to convert name to python string" << std::endl;
+
+    pModel = PyObject_CallFunctionObjArgs(pFunc4, pPath4, NULL);
+
+
+    if (!pModel)
+        std::cout << "pModel does not exists after load" << std::endl;
+
+    Py_DECREF(pPath4);
+    Py_DECREF(pFunc4);
+	//FILE* file = fopen(name,"r");
+	//load(file);
+	//fclose(file);
 	return 0;
 }
 

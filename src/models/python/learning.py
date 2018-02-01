@@ -36,16 +36,18 @@ import copy as cp
 import model as mdl
 import fremen as fm
 import initialization as init
+import dataset_io as dio
+import evaluation as ev
 
-
-def proposed_method(longest, shortest, path, edge_of_square, timestep, k,
+def proposed_method(longest, shortest, dataset, edges_of_cell, k,
                     radius, number_of_periods, evaluation):
     """
     input: longest float, legth of the longest wanted period in default
                           units
            shortest float, legth of the shortest wanted period
                            in default units
-           path string, path to file
+           dataset numpy array, columns: time, vector of measurements, 0/1
+                                (occurence of event)
            edge_of_square float, spatial edge of cell in default units (meters)
            timestep float, time edge of cell in default units (seconds)
            k positive integer, number of clusters
@@ -66,10 +68,15 @@ def proposed_method(longest, shortest, path, edge_of_square, timestep, k,
     objective: to learn model parameters
     """
     # initialization
+    training_data, evaluation_dataset, training_dataset =\
+        dio.divide_dataset(dataset)
     input_coordinates, overall_sum, structure, C, U,\
-        shape_of_grid, time_frame_sums, T, W, ES, P, COV, density_integrals =\
-        init.whole_initialization(path, k, edge_of_square,
-                                  timestep, longest, shortest)
+        shape_of_grid, time_frame_sums, T, W, ES, P, COV,\
+        density_integrals, valid_timesteps =\
+        init.whole_initialization(training_data, k, edges_of_cell,
+                                  longest, shortest, training_dataset)
+    # initialization of fiff, probably better inside  "whole_initialization"
+    diff = -1
     # iteration
     if len(structure[1]) >= number_of_periods:
         jump_out = 1
@@ -81,21 +88,25 @@ def proposed_method(longest, shortest, path, edge_of_square, timestep, k,
         print('\nstarting learning iteration: ' + str(iteration))
         start = clock()
         if evaluation:
-            jump_out, structure, C, U, COV, density_integrals, W, ES, P =\
-                step_evaluation(path, input_coordinates, structure, C, U, k,
-                                shape_of_grid, time_frame_sums, T, W, ES,
-                                COV, density_integrals, P,
-                                radius)
+            jump_out, structure, C, U, COV, density_integrals, W, ES, P, diff=\
+                step_evaluation(training_data, input_coordinates, structure,
+                                C, U, k, shape_of_grid, time_frame_sums, T, W,
+                                ES, COV, density_integrals, P, radius,
+                                valid_timesteps,
+                                evaluation_dataset, edges_of_cell, diff)
         else:
             structure[2].append(P)
             if len(structure[2]) == 1:
                 structure[1].append(radius)
             else:
-                structure[1].append(structure[1][-1] *
-                                    structure[2][-2] / structure[2][-1])
-            dES, structure, C, U, COV, density_integrals, W, ES, P =\
-                iteration_step(path, input_coordinates, structure, C, U,
-                               k, shape_of_grid, time_frame_sums, T, W, ES)
+                #structure[1].append(structure[1][-1] *
+                #                    structure[2][-2] / structure[2][-1])
+                structure[1].append(radius)
+            dES, structure, C, U, COV, density_integrals, W, ES, P, diff =\
+                iteration_step(training_data, input_coordinates, structure, C,
+                               U, k, shape_of_grid, time_frame_sums, T, W, ES,
+                               valid_timesteps,
+                               evaluation_dataset, edges_of_cell, diff)
             jump_out = 0
         if len(structure[1]) >= number_of_periods:
             jump_out = 1
@@ -108,9 +119,10 @@ def proposed_method(longest, shortest, path, edge_of_square, timestep, k,
     return C, COV, density_integrals, structure, average
 
 
-def step_evaluation(path, input_coordinates, structure, C, U, k, shape_of_grid,
-                    time_frame_sums, T, W, ES, COV,
-                    density_integrals, P, radius):
+def step_evaluation(training_data, input_coordinates, structure, C, U, k,
+                    shape_of_grid, time_frame_sums, T, W, ES, COV,
+                    density_integrals, P, radius, valid_timesteps,
+                    evaluation_dataset, edges_of_cell, diff_old):
     """
     input: path string, path to file
            input_coordinates numpy array, coordinates for model creation
@@ -158,23 +170,31 @@ def step_evaluation(path, input_coordinates, structure, C, U, k, shape_of_grid,
     if len(new_structure[2]) == 1:
         new_structure[1].append(radius)
     else:
-        new_structure[1].append(new_structure[1][-1] *
-                                new_structure[2][-2] / new_structure[2][-1])
-    full_output = iteration_step(path, input_coordinates, new_structure, C, U,
-                                 k, shape_of_grid, time_frame_sums, T, W, ES)
-    if full_output[0] < 0:  # (==) if jump_out == 0
-        dES, structure, C, U, COV, density_integrals, W, ES, P = full_output
+        #new_structure[1].append(new_structure[1][-1] *
+        #                        new_structure[2][-2] / new_structure[2][-1])
+        new_structure[1].append(radius)
+        print('pridal jsem radius')
+    full_output = iteration_step(training_data, input_coordinates,
+                                 new_structure, C, U, k, shape_of_grid,
+                                 time_frame_sums, T, W, ES, valid_timesteps,
+                                 evaluation_dataset, edges_of_cell, diff_old)
+    if full_output[-1] < diff_old or diff_old == -1:  # (==) if diff < diff_old
+        dES, structure, C, U, COV, density_integrals, W, ES, P, diff\
+            = full_output
         jump_out = 0
     else:
         jump_out = 1
+        diff = diff_old
         print('\ntoo many periodicities, error have risen,')
         print('when structure ' + str(new_structure) + ' tested;')
         print('jumping out (prematurely)\n')
-    return jump_out, structure, C, U, COV, density_integrals, W, ES, P
+    return jump_out, structure, C, U, COV, density_integrals, W, ES, P, diff
 
 
-def iteration_step(path, input_coordinates, structure, C_old, U_old, k,
-                   shape_of_grid, time_frame_sums, T, W, ES):
+def iteration_step(training_data, input_coordinates, structure, C_old, U_old,
+                   k, shape_of_grid, time_frame_sums, T, W, ES,
+                   valid_timesteps, evaluation_dataset, edges_of_cell,
+                   diff_old):
     """
     input: path string, path to file
            input_coordinates numpy array, coordinates for model creation
@@ -210,11 +230,32 @@ def iteration_step(path, input_coordinates, structure, C_old, U_old, k,
           np.sum()
     objective:
     """
+    #### testuji zmenu "sily" period pri pridavani shluku
     hist_freqs, C, U, COV, density_integrals =\
         mdl.model_creation(input_coordinates,
-                           structure, path, C_old, U_old, k, shape_of_grid)
+                           structure, training_data, C_old, U_old, k,
+                           shape_of_grid)
     osy = tuple(np.arange(len(np.shape(hist_freqs)) - 1) + 1)
     time_frame_freqs = np.sum(hist_freqs, axis=osy)
     P, W, ES, dES = fm.chosen_period(T, time_frame_sums,
-                                     time_frame_freqs, W, ES)
-    return dES, structure, C, U, COV, density_integrals, W, ES, P
+                                     time_frame_freqs, W, ES, valid_timesteps)
+    diff = ev.evaluation_step(evaluation_dataset, C, COV, density_integrals,\
+                           structure, k, edges_of_cell)
+    #for i in xrange(k, k+5):
+    #    for j in xrange(5):
+    #        print('pokus: ' + str(j))
+    #        print('k: ' + str(i))
+    #        hist_freqs, C, U, COV, density_integrals =\
+    #            mdl.model_creation(input_coordinates,
+    #                               structure, training_data, C_old, U_old, i,
+    #                               shape_of_grid)
+    #        osy = tuple(np.arange(len(np.shape(hist_freqs)) - 1) + 1)
+    #        time_frame_freqs = np.sum(hist_freqs, axis=osy)
+    #        P, W, ES, dES = fm.chosen_period(T, time_frame_sums,
+    #                                         time_frame_freqs, W, ES, valid_timesteps)
+    #        diff = ev.evaluation_step(evaluation_dataset, C, COV, density_integrals,\
+    #                                  structure, k, edges_of_cell)
+    #### konec testovani
+    print('for structure:')
+    print(structure)
+    return dES, structure, C, U, COV, density_integrals, W, ES, P, diff

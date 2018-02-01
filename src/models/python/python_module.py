@@ -2,7 +2,7 @@ import numpy as np
 import learning as lrn
 import model as mdl
 
-def python_function_update(training_coordinates):
+def python_function_update(dataset):
     """
     input: training_coordinates numpy array nxd, measured values in measured
                                                  times
@@ -14,45 +14,32 @@ def python_function_update(training_coordinates):
     ###################################################
     # otevirani a zavirani dveri, pozitivni i negativni
     ###################################################
-    
     # differentiate to positives and negatives
-    path_n = training_coordinates[training_coordinates[:,1] == 0][:, 0:1]
-    path_p = training_coordinates[training_coordinates[:,1] == 1][:, 0:1]
-    training_coordinates = None  # free memory?
+    # path_n = training_coordinates[training_coordinates[:,1] == 0][:, 0:1]
+    # path_p = training_coordinates[training_coordinates[:,1] == 1][:, 0:1]
+    # training_coordinates = None  # free memory?
     # parameters
-    longest = 60*60*24*28
-    shortest = 60*60*4
-    edge_of_square = 1  # nepotrebna hodnota
-    timestep = 1
-    k = 1  # muzeme zkusit i 9
+    #### testovani zmeny "sily" periody pri zmene poctu shluku
+    longest = 60*60*24*4*7 # testing one day
+    shortest = 60*60*2 # testing one day
+    #### konec testovani
+    edges_of_cell = [60]
+    k = 6  # muzeme zkusit i 9
     # hours_of_measurement = 24 * 7  # nepotrebne
-    radius = 2
-    number_of_periods = 2
-    evaluation = False
-
-    #positves and negatives binarni
-    print('\nmodel for positive measurements\n\n\n')
+    radius = 1
+    number_of_periods = 4
+    evaluation = True
     C_p, COV_p, density_integrals_p, structure_p, average_p =\
-        lrn.proposed_method(longest, shortest, path_p, edge_of_square, timestep, k,
+        lrn.proposed_method(longest, shortest, dataset,
+                            edges_of_cell, k,
                             radius, number_of_periods, evaluation)
-    # print(C_p)
-    # print(COV_p)
-    # print(density_integrals_p)
-    # print(structure_p)
-    print('\nmodel for negative measurements\n\n\n')
-    C_n, COV_n, density_integrals_n, structure_n, average_n =\
-        lrn.proposed_method(longest, shortest, path_n, edge_of_square, timestep, k,
-                        radius, number_of_periods, evaluation)
-    return C_p, COV_p, density_integrals_p, structure_p, k,\
-        C_n, COV_n, density_integrals_n, structure_n  # , k
+    return C_p, COV_p, density_integrals_p, structure_p, k
 
 
 def python_function_estimate(whole_model, time):
     """
     input: whole_model tuple of model parameters, specificaly:
                 C_p, COV_p, densities_p, structure_p, k_p
-                a
-                C_n, COV_n, densities_n, structure_n, k_n
            time float, time for prediction
     output: estimation float, estimation of the event occurence
     uses:
@@ -61,24 +48,26 @@ def python_function_estimate(whole_model, time):
     ###################################################
     # otevirani a zavirani dveri, pozitivni i negativni
     ###################################################
-    #print('jsem tu a cas je:')
-    #print(time)
-    #print('model je:')
-    #print(whole_model)
     freq_p = mdl.one_freq(np.array([[time]]), whole_model[0], whole_model[1],
                              whole_model[3], whole_model[4],
                              whole_model[2])
-    #print(freq_p)
-    freq_n = mdl.one_freq(np.array([[time]]), whole_model[5], whole_model[6],
-                             whole_model[8], whole_model[4],
-                             whole_model[7])
-    #print(freq_n)
-    probability = freq_p / (freq_p + freq_n)
-    return float(probability[0])
-
-    
+    return float(freq_p[0])
 
 
+def python_function_save(whole_model, file_path):
+    """
+    """
+    with open(file_path, 'wb') as opened_file:
+        np.savez(opened_file, whole_model[0], whole_model[1], whole_model[2],
+                 whole_model[3], whole_model[4])
 
 
-
+def python_function_load(file_path):
+    """
+    """
+    with open(file_path, 'r') as opened_file:
+        npzfile = np.load(file_path)
+        C_p, COV_p, density_integrals_p, structure_p, k =\
+            npzfile['arr0'], npzfile['arr1'], npzfile['arr2'],\
+            list(npzfile['arr3']), int(npzfile['arr4'])
+    return C_p, COV_p, density_integrals_p, structure_p, k

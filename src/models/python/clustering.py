@@ -45,6 +45,7 @@ model version: creates fuzzy partition matrix with values of weghts limited
                to eaual or less than 1
 """
 import numpy as np
+import dataset_io as dio
 
 
 def k_means(X, k, structure, method, version, fuzzyfier,
@@ -78,7 +79,7 @@ def k_means(X, k, structure, method, version, fuzzyfier,
     J_old = 0
     C, U = initialization(X, k, method, C_in, U_in, structure, version)
     for iteration in range(iterations):
-        D = distance_matrix(X, C, U)
+        D = distance_matrix(X, C, U, structure)
         U = partition_matrix(D, version)
         C = new_centroids(X, U, k, d, fuzzyfier)
         J_new = np.sum(U * D)
@@ -98,7 +99,7 @@ def k_means(X, k, structure, method, version, fuzzyfier,
     return C, U, densities
 
 
-def distance_matrix(X, C, U):
+def distance_matrix(X, C, U, structure):
     """
     input: X numpy array nxd, matrix of n d-dimensional observations
            C numpy array kxd, matrix of k d-dimensional cluster centres
@@ -112,10 +113,13 @@ def distance_matrix(X, C, U):
     k, n = np.shape(U)
     D = []
     for cluster in range(k):
-        Ci = np.tile(C[cluster, :], (n, 1))
-        XC = X - Ci
-        # L1 metrics
-        D.append(np.sum(np.abs(XC), axis=1))
+        C_cluster = np.tile(C[cluster, :], (n, 1))
+        XC = dio.hypertime_substraction(X, C_cluster, structure)
+        #XC = X - C_cluster
+        # PROC ????
+        ## L1 metrics
+        #D.append(np.sum(np.abs(XC), axis=1))
+        D.append(np.sqrt(np.sum(XC**2, axis=1)))
     D = np.array(D)
     return D
 
@@ -134,7 +138,8 @@ def partition_matrix(D, version):
     """
     if version == 'fuzzy':
         U = 1 / (D + np.exp(-100))
-        U = U / np.sum(U, axis=0, keepdims=True)
+        # muj pokus, jestli jsem to nemyslel jinak
+        # U = U / np.sum(U, axis=0, keepdims=True)
     elif version == 'model':
         U = 1 / (D + np.exp(-100))
         U[D < 1] = 1
@@ -192,7 +197,7 @@ def initialization(X, k, method, C_in, U_in, structure, version):
         else:
             C = X[np.random.choice(np.arange(n), size=k, replace=False), :]
             U = np.random.rand(k, n)
-            D = distance_matrix(X, C, U)
+            D = distance_matrix(X, C, U, structure)
             U = partition_matrix(D, version)
     elif method == 'prev_dim':
         # supposing that the algorith adds only one circle per iteration
