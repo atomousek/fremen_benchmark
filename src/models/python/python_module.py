@@ -26,7 +26,7 @@ def python_function_update(dataset):
     edges_of_cell = [60]
     k = 6  # muzeme zkusit i 9
     # hours_of_measurement = 24 * 7  # nepotrebne
-    radius = 1
+    radius = 1.0
     number_of_periods = 4
     evaluation = True
     C_p, COV_p, density_integrals_p, structure_p, average_p =\
@@ -57,9 +57,18 @@ def python_function_estimate(whole_model, time):
 def python_function_save(whole_model, file_path):
     """
     """
-    with open(file_path, 'wb') as opened_file:
-        np.savez(opened_file, whole_model[0], whole_model[1], whole_model[2],
-                 whole_model[3], whole_model[4])
+    #with open(file_path, 'wb') as opened_file:
+    #    np.savez(opened_file, whole_model[0], whole_model[1], whole_model[2],
+    #             whole_model[3], whole_model[4])
+    structure = whole_model[3]
+    dim_hyp = len(structure[1])
+    new_structure = [structure[0]]
+    for i in xrange(2):
+        for j in xrange(dim_hyp):
+            new_structure.append(structure[i + 1][j])
+    structure_to_save = np.array(new_structure)
+    np.savez(file_path, whole_model[0], whole_model[1], whole_model[2],
+            structure_to_save, whole_model[4])
 
 
 def python_function_load(file_path):
@@ -67,7 +76,14 @@ def python_function_load(file_path):
     """
     with open(file_path, 'r') as opened_file:
         npzfile = np.load(file_path)
-        C_p, COV_p, density_integrals_p, structure_p, k =\
-            npzfile['arr0'], npzfile['arr1'], npzfile['arr2'],\
-            list(npzfile['arr3']), int(npzfile['arr4'])
-    return C_p, COV_p, density_integrals_p, structure_p, k
+        C_p, COV_p, density_integrals_p, loaded_structure, k =\
+            npzfile['arr_0'], npzfile['arr_1'], npzfile['arr_2'],\
+            npzfile['arr_3'], int(npzfile['arr_4'])
+    dim_hyp = int((len(loaded_structure) - 1) / 2)
+    structure = [int(loaded_structure[0])]
+    for i in xrange(2):
+        sub_list = []
+        for j in xrange(dim_hyp):
+            sub_list.append(loaded_structure[1 + i * dim_hyp + j])
+        structure.append(sub_list)
+    return C_p, COV_p, density_integrals_p, structure, k
